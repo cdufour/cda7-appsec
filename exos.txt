@@ -1,0 +1,17 @@
+** Exercices **
+
+Créer une page create-account.html affichant un formulaire permettant
+d'insérer un utilisateur en base via l'url /user
+
+Contraintes sur les champs (tip: expressions régulières):
+- email: format email valide
+- password: 
+    de longueur 10 au moins
+    au moins une minuscule
+    au moins une majuscule
+    au moins une valeur numérique
+
+Le mot de passe devra être haché et encrypté (tip: module bcrypt)
+Le formulaire devra être protégé contre les injections SQL
+
+Vérifier que le formulaire de login fonctionne correctement

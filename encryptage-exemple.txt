@@ -1,0 +1,4 @@
+Clair           azerty_TEST_2222
+Md5             aed976f350f5d794c2b48858f71430ab
+Hash + Salt     $2b$08$k0zhf3SiPdrXqOTNolOtnutqu2QdrewqyFzHKo5lR/D0Kju7/IUcK
+Hash + Salt     $2b$08$sfFVg9PU4GioCbfOvKoPkOiYdjDlXlHMmw0lxhIU4V60kV711oxDO

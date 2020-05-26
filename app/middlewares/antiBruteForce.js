@@ -13,7 +13,7 @@ const antiBruteForce = (req, res, next) => {
     }
     
     if (hosts[req.hostname] > MAX_LOGIN_ATTEMPTS) {
-        return res.send('VOus avez dépassé le nombre de tentatives autorisées');
+        return res.send('Too many failed attempts');
     }
 
     next();

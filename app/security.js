@@ -1,10 +1,19 @@
 function noSqlInjection(str) {
-
-    if (str.indexOf('#') !== -1) {
-        return false;
-    }
-
+    if (str.indexOf('#') !== -1) return false;
     return true;
 }
 
-module.exports = { noSqlInjection };
+function isEmail(str) {
+    return (/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(str)) 
+}
+
+function isPasswordValid(str) {
+    // conditions
+    var c1 = str.length > 9; // longueur d'au moins 10
+    var c2 = (/[a-z]+/gm).test(str); // au moins 1 minuscule
+    var c3 = (/[A-Z]+/gm).test(str); // au moins 1 majscule
+    var c4 = (/[0-9]+/gm).test(str); // au moins 1 chiffre
+    return c1 && c2 && c3 && c4;
+}
+
+module.exports = { noSqlInjection, isEmail, isPasswordValid };

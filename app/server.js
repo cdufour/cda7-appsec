@@ -1,25 +1,47 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const app = express();
+const mysql = require('mysql');
 const PORT = 3100;
+const antiBruteForce = require('./middlewares/antiBruteForce');
+const { viciousHeader, banUserAgent } = require('./middlewares/general');
 const CORRECT_CREDENTIALS = {
     email: 'admin@site.fr',
     password: 1234
 };
 
-const viciousHeader = (req, res, next) => {
-    res.setHeader('X-Powered-By', 'Drupal');
-    next();
-}
-
-const banUserAgent = (req, res, next) => {
-    const ua = req.get('user-agent'); // retourne la valeur de cet entête HTTP
-    //console.log('ua', ua);
-    if (ua && ua.toLowerCase().indexOf('curl') != -1) {
-        return res.send('On ne répond pas à Curl');
+const connection = mysql.createConnection({
+    host     : 'localhost',
+    user     : 'root',
+    password : 'root',
+    database : 'appsec',
+    port     : 8889
+});
+ 
+connection.connect((err) => {
+    if (err) {
+        console.log(err);
+    } else {
+        console.log('Connected to Mysql');
     }
-    next();
-}
+    
+});
+ 
+// connection.query('SELECT 1 + 1 AS solution', function (error, results, fields) {
+//   if (error) throw error;
+//   console.log('The solution is: ', results[0].solution);
+// });
+
+// const q = "INSERT INTO user (email, password) VALUES ('admin','admin')";
+// connection.query(q, (err, results, fields) => {
+//     if (err) throw err;
+//     console.log(results.insertedId);
+// })
+ 
+// connection.end();
+
+
+
 
 
 
@@ -27,17 +49,17 @@ const banUserAgent = (req, res, next) => {
 // Middlewares
 
 // Accès aux ressources statiques (html,js,css,images, etc...)
-app.use(express.static('public'));
+app.use(express.static('./public'));
 
 app.use((req, res, next) => {
     res.setHeader('X-Token', 'Dikra est spectaculaire');
-    //console.log(req.headers);
     next();
 })
 
-app.use(bodyParser.text()); // Content-Type:text/plain
-app.use(bodyParser.json()); // parse le body en Json
-app.use(bodyParser.urlencoded());
+// Parsing du corps des requêtes selon l'entête "content-type"
+app.use(bodyParser.text()); // content-type:text/plain
+app.use(bodyParser.json()); // content-type:application/json
+app.use(bodyParser.urlencoded()); // content-type:application/x-www-form-urlencoded
 
 //app.use(viciousHeader);
 //app.use(viciousHeader, banUserAgent);
@@ -51,8 +73,8 @@ app.get('/page1', viciousHeader, (req, res) => {
     res.send('page1');
 })
 
-app.post('/login', (req, res) => {
-    console.log(req.body);
+app.post('/login', antiBruteForce, (req, res) => {
+    //console.log(req.body);
     
     // vérifications
     const {email, password} = req.body;

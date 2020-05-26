@@ -1,0 +1,8 @@
+# requête POST - avec envoi de données (-d) en json
+curl -H "content-type:application/json" -H "user-agent:safari" -d '{"email":"admin@site.fr","password"="123"}' http://localhost:3100/login
+
+# requête POST - avec envoi de données (-d) en urlencoded
+curl -H "content-type:application/x-www-form-urlencoded" -H "user-agent:safari" -d "email=admin@site.fr&password=123" http://localhost:3100/login
+
+# requête POST - avec envoi de données (-d) en json, et affichage des headers de la réponse (-i)
+curl -H "content-type:application/x-www-form-urlencoded" -H "user-agent:safari" -d "email=admin@site.fr&password=123" http://localhost:3100/login -i

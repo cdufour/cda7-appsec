@@ -16,4 +16,15 @@ function isPasswordValid(str) {
     return c1 && c2 && c3 && c4;
 }
 
-module.exports = { noSqlInjection, isEmail, isPasswordValid };
+function isFileValid(file) {
+    // conditions
+    var c1 = file.size < 100000; // 100 ko
+    var c2 =  
+        file.type == 'image/jpeg' || 
+        file.type == 'image/jpg' ||
+        file.type == 'image/png' ||
+        file.type == 'image/gif';
+    return c1 && c2;
+}
+
+module.exports = { noSqlInjection, isEmail, isPasswordValid, isFileValid };

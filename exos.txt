@@ -1,5 +1,6 @@
 ** Exercices **
 
+1/ Mot de passe sécurisé
 Créer une page create-account.html affichant un formulaire permettant
 d'insérer un utilisateur en base via l'url /user
 
@@ -15,3 +16,35 @@ Le mot de passe devra être haché et encrypté (tip: module bcrypt)
 Le formulaire devra être protégé contre les injections SQL
 
 Vérifier que le formulaire de login fonctionne correctement
+
+
+2/ Upload sécurisé
+Front: créer un fichier upload.html  affichant un formulaire d'envoi de fichier.
+Important: ne pas oublier d'encoder l'envoi de ce formulaire en multipart/form-data.
+
+Back: ajouter la route POST /upload
+Engistrer le fichier sur le serveur seulement si les contraintes suivantes
+sont respectées:
+- Fichier de type image uniquement (jpg, jpeg, png, gif)
+- Taille maximale de 100 Ko
+Pour plus de sécurité, le fichier devra être renommé et enregistré dans un dossier /public/upload
+
+Nb: le module "body-parser" ne prend pas en compte l'encodage multipart/form-data
+Il existe d'autres modules sur npm permettant de traiter les fichiers binaires envoyés par le client,
+Module conseillé: "formidable" (https://www.npmjs.com/package/formidable#readme)
+
+
+3/ XSS Stored
+Ajouter une table "message" à la base de données appsec avec les 3 colonnes
+suivantes: id (INT AUTO_INCREMENT), userid (INT), body (TEXT)
+
+- Créer le mécanisme d'ajout de message dans le système (front + back)
+N:b: L'id de l'utilisateur à associer au message pourra être récupéré dans la session
+
+La route POST /message devra être protégé (utilisateur logué)
+Interdire l'insertion en base de données de la balise script afin d'éviter l'XSS stored
+
+
+Optionnel
+- Créer une route GET /message renvoyant les messages extraits de la db au format json
+et vérifier qu'aucune balise script ne figure dans le champ body des messages

@@ -1,12 +1,18 @@
+const { rename } = require('fs');
 const express = require('express');
 const bodyParser = require('body-parser');
 const app = express();
 const mysql = require('mysql');
 const bcrypt = require('bcrypt');
+
+const formidable = require('formidable');
+const uniqueString = require('unique-string');
+const session = require('express-session');
+
 const PORT = 3100;
 const antiBruteForce = require('./middlewares/antiBruteForce');
 const { viciousHeader, banUserAgent } = require('./middlewares/general');
-const { noSqlInjection, isEmail, isPasswordValid } = require('./security');
+const { noSqlInjection, isEmail, isPasswordValid, isFileValid } = require('./security');
 const CORRECT_CREDENTIALS = { email: 'admin@site.fr', password: 1234 };
 
 const connection = mysql.createConnection({
@@ -45,6 +51,8 @@ app.use(bodyParser.urlencoded()); // content-type:application/x-www-form-urlenco
 // Middleware inspectant l'entête user-agent
 app.use(banUserAgent);
 
+// Middleware gérant la session (module express-session)
+app.use(session({secret:'juve', resave: false})) // ajoute la clé .session à l'objet req
 
 // ** Routes **
 app.get('/', (req, res) => {
@@ -56,7 +64,6 @@ app.get('/page1', viciousHeader, (req, res) => {
 })
 
 app.post('/login', antiBruteForce, (req, res) => {
-    
     // vérifications
     const {email, password} = req.body;
 
@@ -79,29 +86,28 @@ app.post('/login', antiBruteForce, (req, res) => {
 
     // Bonne pratique: requêtes préparées
     // https://www.npmjs.com/package/mysql#escaping-query-values
-    let q = "SELECT password FROM user WHERE email = ?"; // requête préparée
+    let q = "SELECT id, password FROM user WHERE email = ?"; // requête préparée
     q = mysql.format(q, [email]); // .format() échappe - sécurise - les paramètres
-
     connection.query(q, (err, result) => {
         if (result.length === 0) return res.send('Login failed...');
+        const hash = result[0].password;
+        const userId = result[0].id;
 
-        hash = result[0].password;
 
         // comparaison du password clair avec le password crypté
         bcrypt.compare(password, hash, (err, same) => {
             if (same) {
-                res.send('LOGIN OK')
+                req.session.connected = true;
+                req.session.userId = userId;
+                console.log(req.session);
+                res.send('LOGIN OK');
             } else {
                 res.send('LOGIN NOT OK');
             }
         })
 
     })
-
-    //res.send('...');
-
-    });
-
+});
 
 app.post('/user', (req, res) => {
     const { email, password } = req.body;
@@ -125,6 +131,137 @@ app.post('/user', (req, res) => {
 
     res.send('ok');
 
+})
+
+app.post('/upload', (req, res) => {
+    const form = formidable({ multiples: true });
+ 
+    form.parse(req, (err, fields, files) => {
+        if (err) {
+            next(err);
+            return;
+        }
+        // Checkpoints
+        if(!isFileValid(files.file)) return res.send('Invalid file');
+
+        // validation ok => enregistrement du fichier
+        var ustr = uniqueString();
+        var ext = files.file.name.split('.')[1];
+        var dest = __dirname + '/public/upload/' + ustr + '.' + ext;
+        rename(files.file.path, dest, (err) => {
+            if (err) return res.send('Cannot save file')
+            res.send('File uploaded');
+        })
+    });
+})
+
+app.get('/newpassword', (req, res) => {
+    if (!req.session.connected) return res.status(401).send('Not allowed');
+
+    const token = uniqueString();
+    req.session.token = token;
+    var body = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Modify Password</title>
+    </head>
+    <body>
+        <h1>Modify Password</h1>
+        <form method="POST" action="/newpassword" enctype="application/x-www-form-urlencoded">
+            <input name="token" type="hidden" value="${token}" />
+            <input name="new_password" type="password" placeholder="New password" /><br>
+            <input name="confirm_password" type="password" placeholder="Confirm password" /><br>
+            <input name="submit" type="submit" value="Change password" />
+        </form>
+    </body>
+    </html>`;
+
+    res.send(body);
+})
+
+app.post('/newpassword', (req, res) => {
+    if (!req.session.connected) return res.status(401).send('Not allowed');
+    
+    // vérification du token anti-csrf
+    // token absent de la session
+    if (!req.session.token) return res.status(401).send('Not allowed');
+
+    // token présent dans la session mais différent de celui reçu dans la requête
+    if (req.session.token != req.body.token) return res.status(401).send('Not allowed');
+
+    // requête SQL ici pour modifier le mot de passe
+    res.send('Password modified');
+})
+
+app.get('/test', (req, res) => {
+    if (!req.session.connected) return res.status(401).send('Not allowed');
+    res.send('ok');
+})
+
+app.get('/xss-reflected', (req, res) => {
+
+    // Dans cette faille, le serveur renvoie directement un input du client
+    // cet input peut contenir du code (balises, script) éxecutable par son navigateur
+    // Contre-mesure: nettoyer les inputs, avant leur renvoie (reflected) ou insertion en base (store) !
+    // https://www.npmjs.com/package/sanitize-html
+
+    var message = (req.query.message) ? req.query.message : '';
+    var body = `
+        <body>
+        <h1>XSS Reflected</h1>
+        <form>
+            <input type="text" name="message" />
+            <input type="submit" value="Send" />
+        </form>
+        <p>${message}</p>
+        </body>
+    `;
+    res.send(body);
+
+})
+
+app.get('/message', (req, res) => {
+    var q = 'SELECT * FROM message';
+    connection.query(q, (err, results) => {
+        var messages = '';
+        if (results.length > 0) {
+            messages += '<ul>';
+            results.forEach(r => {
+                messages += '<li>' + r.body + '</li>';
+            })
+            messages += '</ul>';
+        }
+
+        var form = `
+            <form method="POST" action="/message">
+                <input type="text" name="message" />
+                <input type="submit" value="Send" />
+            </form>
+        `;
+        var body = `
+            <h1>Messages</h1>
+            <div>${form}</div>
+            <div>${messages}</div>
+        `;
+
+        res.send(body);
+    })
+
+})
+
+app.post('/message', (req, res) => {
+    var { userId, connected } = req.session;
+    if (!connected || !userId) return res.status(401).send('Not allowed');
+    
+    var q = "INSERT INTO message (userId, body) VALUES (?,?)";
+    q = mysql.format(q, [userId, req.body.message]);
+    connection.query(q, (err, result) => {
+        console.log(result);
+        res.redirect('/message');
+    })
 })
 
 app.disable('x-powered-by') // retire le header de la réponse

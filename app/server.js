@@ -12,7 +12,7 @@ const session = require('express-session');
 const PORT = 3100;
 const antiBruteForce = require('./middlewares/antiBruteForce');
 const { viciousHeader, banUserAgent } = require('./middlewares/general');
-const { noSqlInjection, isEmail, isPasswordValid, isFileValid } = require('./security');
+const { noSqlInjection, isEmail, isPasswordValid, isFileValid, purifyInput } = require('./security');
 const CORRECT_CREDENTIALS = { email: 'admin@site.fr', password: 1234 };
 
 const connection = mysql.createConnection({
@@ -255,11 +255,12 @@ app.get('/message', (req, res) => {
 app.post('/message', (req, res) => {
     var { userId, connected } = req.session;
     if (!connected || !userId) return res.status(401).send('Not allowed');
+
+    var message = purifyInput(req.body.message);
     
     var q = "INSERT INTO message (userId, body) VALUES (?,?)";
-    q = mysql.format(q, [userId, req.body.message]);
+    q = mysql.format(q, [userId, message]);
     connection.query(q, (err, result) => {
-        console.log(result);
         res.redirect('/message');
     })
 })

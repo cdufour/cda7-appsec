@@ -27,4 +27,14 @@ function isFileValid(file) {
     return c1 && c2;
 }
 
-module.exports = { noSqlInjection, isEmail, isPasswordValid, isFileValid };
+function purifyInput(str) {
+    // remplace par chaîne vide les balises la balise script
+    var clean = str
+        .toLowerCase()
+        .replace('<script>','')
+        .replace('</script>', '')
+    ;
+    return clean;
+}
+
+module.exports = { noSqlInjection, isEmail, isPasswordValid, isFileValid, purifyInput };

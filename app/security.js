@@ -30,7 +30,6 @@ function isFileValid(file) {
 function purifyInput(str) {
     // remplace par chaîne vide les balises la balise script
     var clean = str
-        .toLowerCase()
         .replace('<script>','')
         .replace('</script>', '')
     ;

@@ -8,6 +8,7 @@ const bcrypt = require('bcrypt');
 const formidable = require('formidable');
 const uniqueString = require('unique-string');
 const session = require('express-session');
+const helmet = require('helmet');
 
 const PORT = 3100;
 const antiBruteForce = require('./middlewares/antiBruteForce');
@@ -54,6 +55,16 @@ app.use(banUserAgent);
 // Middleware gérant la session (module express-session)
 app.use(session({secret:'juve', resave: false})) // ajoute la clé .session à l'objet req
 
+// Middleware personnalisé CORS
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin','*');
+    res.setHeader("Content-Security-Policy", "img-src 'self'");
+    next();
+})
+
+// Middleware ajoutant headers sécurisé (CSP, HSTS, etc.)
+app.use(helmet());
+
 // ** Routes **
 app.get('/', (req, res) => {
     res.send('Salut');
@@ -92,7 +103,6 @@ app.post('/login', antiBruteForce, (req, res) => {
         if (result.length === 0) return res.send('Login failed...');
         const hash = result[0].password;
         const userId = result[0].id;
-
 
         // comparaison du password clair avec le password crypté
         bcrypt.compare(password, hash, (err, same) => {
@@ -242,9 +252,11 @@ app.get('/message', (req, res) => {
             </form>
         `;
         var body = `
-            <h1>Messages</h1>
-            <div>${form}</div>
-            <div>${messages}</div>
+            <body>
+                <h1>Messages</h1>
+                <div>${form}</div>
+                <div>${messages}</div>
+            </body>
         `;
 
         res.send(body);
